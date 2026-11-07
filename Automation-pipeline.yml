@@ -1,0 +1,216 @@
+parameters:
+  - name: test_env
+    displayName: Select Environment to Test
+    type: string
+    default: uat
+    values:
+      - qa
+      - uat
+
+  - name: test_tag
+    displayName: Select Test Tag
+    type: string
+    default: regression
+    values:
+      - sanity
+      - regression
+      - apisanity
+      - apiregression
+      - uisanity
+      - uiregression
+
+  - name: test_browser
+    displayName: Select Browser
+    type: string
+    default: chrome
+    values:
+      - chrome
+      - edge
+      - firefox
+
+variables:
+  venv: $(System.DefaultWorkingDirectory)\venv_ci
+  PIP_CACHE_DIR: $(Pipeline.Workspace)\.pip
+
+schedules:
+- cron: 45 12 * * 1,2,3,4,5
+  branches:
+    include:
+      - refs/heads/main
+  always: true
+
+name: $(date:yyyyMMdd)$(rev:.r)
+
+jobs:
+- job: Phase_1
+  displayName: Build and Test
+  timeoutInMinutes: 0
+  pool:
+    name: YOUR_AGENT_POOL   # replace with your Azure DevOps agent pool
+
+  steps:
+    # Checkout code
+    - checkout: self
+      fetchDepth: 0
+
+    # Cache pip dependencies
+    - task: Cache@2
+      displayName: Cache pip dependencies
+      inputs:
+        key: 'pip | "$(Agent.OS)" | APIWEBauto/requirements.txt'
+        restoreKeys: |
+          pip | "$(Agent.OS)"
+        path: $(PIP_CACHE_DIR)
+
+    # Cache Python virtual environment
+    - task: Cache@2
+      displayName: Cache Python venv
+      inputs:
+        key: 'venv | "$(Agent.OS)" | APIWEBauto/requirements.txt'
+        restoreKeys: |
+          venv | "$(Agent.OS)"
+        path: $(venv)
+
+    # Install dependencies and run tests
+    - task: CmdLine@2
+      displayName: Automation Execution
+      inputs:
+        script: |
+          REM ============================================================
+          REM  Reuse or Create Virtual Environment
+          REM ============================================================
+          if exist "$(venv)\Scripts\activate.bat" (
+              echo  Reusing existing virtual environment
+          ) else (
+              echo  Creating new virtual environment
+              python -m venv $(venv)
+          )
+
+          call "$(venv)\Scripts\activate.bat"
+
+          REM ============================================================
+          REM  Conditional Dependency Installation (based on hash)
+          REM ============================================================
+          for /f "tokens=*" %%A in ('certutil -hashfile requirements.txt MD5 ^| find /v "certutil" ^| find /v "MD5"') do set REQ_HASH=%%A
+
+          if exist "$(venv)\req_hash.txt" (
+              set /p OLD_HASH=<"$(venv)\req_hash.txt"
+          )
+
+          if "%REQ_HASH%"=="%OLD_HASH%" (
+              echo Dependencies already installed (no changes detected)
+          ) else (
+              echo Installing/Updating dependencies...
+              python -m pip install --upgrade pip
+              python -m pip install --cache-dir=%PIP_CACHE_DIR% -r requirements.txt
+              echo Dependencies installed
+              echo %REQ_HASH% > "$(venv)\req_hash.txt"
+          )
+
+          REM ============================================================
+          REM  Install Playwright Browsers
+          REM ============================================================
+          echo Installing Playwright browsers...
+          playwright install
+          if errorlevel 1 (
+              echo ERROR: Playwright installation failed
+              exit /b 1
+          )
+          echo ✓ Playwright browsers installed successfully
+
+          REM ============================================================
+          REM  Set Allure Results Directory
+          REM ============================================================
+          set ALLURE_RESULTS_DIR=allure-results\%BUILD_BUILDNUMBER%
+
+          REM ============================================================
+          REM  Run PyTest with Allure Reports
+          REM ============================================================
+          REM Secrets are injected via the task's env: block (pipeline secret variables)
+          python -m pytest -n2 -m ${{ parameters.test_tag }} --test-browser=${{ parameters.test_browser }} --test-env=${{ parameters.test_env }} --alluredir=%ALLURE_RESULTS_DIR%
+          echo Test execution completed
+
+          REM ============================================================
+          REM  Generate Enhanced Report Only
+          REM ============================================================
+          echo --- Generating ENHANCED report with complete test details...
+          if exist "reports\enhanced" rmdir /s /q reports\enhanced
+          mkdir reports\enhanced
+          python report_generator_enhanced.py %ALLURE_RESULTS_DIR% reports\enhanced --test-tag ${{ parameters.test_tag }} --test-browser ${{ parameters.test_browser }} --test-env ${{ parameters.test_env }}
+          if errorlevel 1 (
+              echo Warning: report_generator_enhanced.py returned error code %errorlevel%
+          ) else (
+              echo ✓ Enhanced report generated successfully
+          )
+
+          REM ============================================================
+          REM  Verify Allure Results Directory
+          REM ============================================================
+          echo --- Checking Allure Results Directory ---
+          if exist %ALLURE_RESULTS_DIR% (
+              echo Allure results directory exists.
+              dir %ALLURE_RESULTS_DIR% /s /b
+          ) else (
+              echo ERROR: Allure results directory does NOT exist.
+          )
+        workingDirectory: APIWEBauto
+      # Map pipeline secret variables -> env vars read by config/<env>.json
+      env:
+        API_BASE_URL: $(API_BASE_URL)
+        API_AUTH_TYPE: $(API_AUTH_TYPE)
+        API_TOKEN_URL: $(API_TOKEN_URL)
+        API_CLIENT_ID: $(API_CLIENT_ID)
+        API_CLIENT_SECRET: $(API_CLIENT_SECRET)
+        API_USERNAME: $(API_USERNAME)
+        API_PASSWORD: $(API_PASSWORD)
+        API_TOKEN: $(API_TOKEN)
+        API_KEY: $(API_KEY)
+        UI_BASE_URL: $(UI_BASE_URL)
+        UI_USERNAME: $(UI_USERNAME)
+        UI_PASSWORD: $(UI_PASSWORD)
+        UI_ADMIN_USERNAME: $(UI_ADMIN_USERNAME)
+        UI_ADMIN_PASSWORD: $(UI_ADMIN_PASSWORD)
+        DB_SERVER: $(DB_SERVER)
+        DB_NAME: $(DB_NAME)
+        DB_USER: $(DB_USER)
+        DB_PASSWORD: $(DB_PASSWORD)
+        CI: 'true'
+
+    # Archive Allure Results
+    - task: CmdLine@2
+      displayName: Archive Allure Results
+      condition: succeededOrFailed()
+      inputs:
+        script: |
+          if exist "APIWEBauto\allure-results\$(Build.BuildNumber)" (
+              echo  Allure results directory found
+              
+              REM Create wrapper folder for proper structure
+              if exist "allure-wrapper" rmdir /s /q allure-wrapper
+              mkdir allure-wrapper\allure-results
+              
+              REM Copy results into wrapper
+              xcopy /E /Y "APIWEBauto\allure-results\$(Build.BuildNumber)\*" "allure-wrapper\allure-results\" 2>nul
+              echo ✅ Allure results wrapped for download
+          ) else (
+              echo ⚠️  Allure results directory not found at expected location
+          )
+        workingDirectory: .
+
+    # Publish Enhanced Test Report
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Enhanced Test Report
+      condition: succeededOrFailed()
+      inputs:
+        PathtoPublish: 'APIWEBauto/reports/enhanced'
+        ArtifactName: 'Enhanced-Test-Report'
+        publishLocation: 'Container'
+
+    # Publish Allure Results
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Allure Results (for download)
+      condition: succeededOrFailed()
+      inputs:
+        PathtoPublish: 'allure-wrapper'
+        ArtifactName: 'Allure-Results-$(Build.BuildNumber)'
+        publishLocation: 'Container'

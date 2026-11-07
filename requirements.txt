@@ -1,0 +1,31 @@
+# Test runner
+pytest
+pytest-asyncio
+pytest-xdist
+pytest-rerunfailures
+pytest-regressions
+
+# UI
+playwright
+pytest-playwright
+pillow
+
+# API
+requests
+jsonschema
+
+# Config / secrets
+python-dotenv
+
+# Reporting
+allure-pytest
+allure-python-commons
+
+# Data / DB (optional)
+pandas
+openpyxl
+numpy
+pyodbc
+
+# Load (optional)
+locust

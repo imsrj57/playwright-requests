@@ -1,0 +1,38 @@
+{
+  "api": {
+    "base_url": "${API_BASE_URL:-https://api.qa.example.com}",
+    "timeout": 30,
+    "verify_ssl": true,
+    "auth": {
+      "type": "${API_AUTH_TYPE:-none}",
+      "token_url": "${API_TOKEN_URL}",
+      "client_id": "${API_CLIENT_ID}",
+      "client_secret": "${API_CLIENT_SECRET}",
+      "username": "${API_USERNAME}",
+      "password": "${API_PASSWORD}",
+      "token": "${API_TOKEN}",
+      "api_key_header": "${API_KEY_HEADER:-x-api-key}",
+      "api_key": "${API_KEY}"
+    }
+  },
+  "ui": {
+    "base_url": "${UI_BASE_URL:-https://app.qa.example.com}",
+    "default_timeout_ms": 30000,
+    "users": {
+      "default": {
+        "username": "${UI_USERNAME}",
+        "password": "${UI_PASSWORD}"
+      },
+      "admin": {
+        "username": "${UI_ADMIN_USERNAME}",
+        "password": "${UI_ADMIN_PASSWORD}"
+      }
+    }
+  },
+  "db": {
+    "server": "${DB_SERVER}",
+    "database": "${DB_NAME}",
+    "uid": "${DB_USER}",
+    "pwd": "${DB_PASSWORD}"
+  }
+}

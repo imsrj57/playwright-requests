@@ -1,0 +1,85 @@
+{
+  "version": "1.0",
+  "generated": "2026-11-07",
+  "high_impact_files": {
+    "ui/pages/BasePage.py": 3,
+    "api/utils/api_request.py": 2,
+    "common/config_loader.py": 2,
+    "DB/db_utils.py": 1,
+    "api/data/authenticate.py": 1,
+    "ui/pages/login.py": 1,
+    "ui/utils/DriverManager.py": 1
+  },
+  "circular_dependencies": [],
+  "test_imports_test": {},
+  "imports": {
+    "api/conftest.py": [
+      "api/data/authenticate.py",
+      "api/utils/api_request.py"
+    ],
+    "api/data/__init__.py": [],
+    "api/data/authenticate.py": [],
+    "api/data/validation_utils.py": [],
+    "api/tests/__init__.py": [],
+    "api/tests/example_api_test.py": [
+      "api/utils/api_request.py"
+    ],
+    "api/utils/__init__.py": [],
+    "api/utils/api_request.py": [],
+    "api/utils/locust_pytest_runner.py": [],
+    "api/utils/run_locust.py": [],
+    "api/utils/wait_utils.py": [],
+    "common/__init__.py": [],
+    "common/config_loader.py": [],
+    "conftest.py": [
+      "DB/db_utils.py",
+      "common/config_loader.py",
+      "ui/pages/BasePage.py",
+      "ui/utils/DriverManager.py"
+    ],
+    "DB/__init__.py": [],
+    "DB/db_utils.py": [],
+    "ui/pages/__init__.py": [],
+    "ui/pages/BasePage.py": [],
+    "ui/pages/login.py": [
+      "ui/pages/BasePage.py"
+    ],
+    "ui/tests/__init__.py": [],
+    "ui/tests/example_ui_test.py": [
+      "common/config_loader.py",
+      "ui/pages/login.py"
+    ],
+    "ui/utils/DriverManager.py": [],
+    "ui/utils/healing_driver.py": [],
+    "ui/utils/runtime_data.py": [],
+    "ui/utils/visual_dom_utils.py": [],
+    "ui/utils/visual_regression_pillow.py": []
+  },
+  "imported_by": {
+    "api/data/authenticate.py": [
+      "api/conftest.py"
+    ],
+    "api/utils/api_request.py": [
+      "api/conftest.py",
+      "api/tests/example_api_test.py"
+    ],
+    "DB/db_utils.py": [
+      "conftest.py"
+    ],
+    "common/config_loader.py": [
+      "conftest.py",
+      "ui/tests/example_ui_test.py"
+    ],
+    "ui/pages/BasePage.py": [
+      "conftest.py",
+      "ui/pages/login.py"
+    ],
+    "ui/utils/DriverManager.py": [
+      "conftest.py"
+    ],
+    "ui/pages/login.py": [
+      "ui/tests/example_ui_test.py"
+    ]
+  },
+  "markers": []
+}
