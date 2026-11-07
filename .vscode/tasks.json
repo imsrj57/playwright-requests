@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Review: Rebuild repo brain",
+            "detail": "Regenerate qa_agent/repo_brain.json import graph",
+            "type": "shell",
+            "command": "python qa_agent/update_brain.py",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

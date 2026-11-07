@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python qa_agent/update_brain.py)",
+      "Bash(pytest *)",
+      "Bash(python -m pytest *)",
+      "Bash(git diff *)",
+      "Bash(git status)"
+    ]
+  }
+}

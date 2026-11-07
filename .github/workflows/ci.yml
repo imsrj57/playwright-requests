@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y unixodbc-dev
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Compile
+        run: python -m compileall -q api ui common DB qa_agent enhancement conftest.py conftest_plugin.py
+
+      - name: Collect tests
+        run: pytest --collect-only -q
+
+      - name: Run template tests (skip unless env vars are configured)
+        env:
+          CI: "true"
+        run: pytest -m example --headless --alluredir=allure-results/ci
+
+      - name: Build HTML report
+        if: always()
+        run: python report_generator_enhanced.py allure-results/ci reports/enhanced --test-tag example --test-env qa --test-browser chrome
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enhanced-report
+          path: reports/enhanced
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

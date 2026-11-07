@@ -1,0 +1,4 @@
+{
+    "github.copilot.chat.experimental.prompt-files": true,
+    "github.copilot.chat.codeGeneration.useInstructionFiles": true
+}
